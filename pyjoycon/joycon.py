@@ -5,8 +5,7 @@ import time
 import threading
 from typing import Optional
 
-# TODO: disconnect, power off sequence
-
+# TODO: power off sequence
 
 class JoyCon:
     _INPUT_REPORT_SIZE = 49
@@ -45,10 +44,20 @@ class JoyCon:
         self._setup_sensors()
 
         # start talking with the joycon in a daemon thread
+        self.disconnected = threading.Event()
         self._update_input_report_thread \
             = threading.Thread(target=self._update_input_report)
         self._update_input_report_thread.setDaemon(True)
         self._update_input_report_thread.start()
+
+        print("Connected to " + str(self))
+
+    def __str__(self):
+        left_right = "left" if self.is_left() else "right"
+        body = "\033[38;2;{};{};{}mbody\033[0m".format(self.color_body[0], self.color_body[1], self.color_body[2])
+        buttons = "\033[38;2;{};{};{}mbuttons\033[0m".format(self.color_btn[0], self.color_btn[1], self.color_btn[2])
+        return f"{left_right} joycon ({self.serial} : {body}/{buttons})"
+            
 
     def _open(self, vendor_id, product_id, serial):
         try:
@@ -94,7 +103,6 @@ class JoyCon:
         assert report[1:2] != subcommand, "THREAD carefully"
 
         # TODO: determine if the cut bytes are worth anything
-
         return report[13] & 0x80, report[13:]  # (ack, data)
 
     def _spi_flash_read(self, address, size) -> bytes:
@@ -111,7 +119,7 @@ class JoyCon:
         return report[7:size+7]
 
     def _update_input_report(self):  # daemon thread
-        while True:
+        while not self.disconnected.is_set():
             report = self._read_input_report()
             # TODO, handle input reports of type 0x21 and 0x3f
             while report[0] != 0x30:
@@ -356,7 +364,88 @@ class JoyCon:
         return (data - self._GYRO_OFFSET_Z) * self._GYRO_COEFF_Z
 
     def get_status(self) -> dict:
-        return {
+        if self.is_left:
+            return {
+                "battery": {
+                    "charging": self.get_battery_charging(),
+                    "level": self.get_battery_level(),
+                },
+                "buttons": {
+                    "left": {
+                        "down": self.get_button_down(),
+                        "up": self.get_button_up(),
+                        "right": self.get_button_right(),
+                        "left": self.get_button_left(),
+                        "sr": self.get_button_left_sr(),
+                        "sl": self.get_button_left_sl(),
+                        "l": self.get_button_l(),
+                        "zl": self.get_button_zl(),
+                    },
+                    "shared": {
+                        "plus": self.get_button_plus(),
+                        "l-stick": self.get_button_l_stick(),
+                        "home": self.get_button_home(),
+                        "charging-grip": self.get_button_charging_grip(),
+                    }
+                },
+                "analog-sticks": {
+                    "left": {
+                        "horizontal": self.get_stick_left_horizontal(),
+                        "vertical": self.get_stick_left_vertical(),
+                    },
+                },
+                "accel": {
+                    "x": self.get_accel_x(),
+                    "y": self.get_accel_y(),
+                    "z": self.get_accel_z(),
+                },
+                "gyro": {
+                    "x": self.get_gyro_x(),
+                    "y": self.get_gyro_y(),
+                    "z": self.get_gyro_z(),
+                },
+            }
+        elif self.is_right():
+            return { 
+                "battery": {
+                    "charging": self.get_battery_charging(),
+                    "level": self.get_battery_level(),
+                },
+                "buttons": {
+                    "right": {
+                        "y": self.get_button_y(),
+                        "x": self.get_button_x(),
+                        "b": self.get_button_b(),
+                        "a": self.get_button_a(),
+                        "sr": self.get_button_right_sr(),
+                        "r": self.get_button_r(),
+                        "zr": self.get_button_zr(),
+                    },
+                    "shared": {
+                        "plus": self.get_button_plus(),
+                        "r-stick": self.get_button_r_stick(),
+                        "home": self.get_button_home(),
+                        "charging-grip": self.get_button_charging_grip(),
+                    },
+                },
+                "analog-sticks": {
+                    "right": {
+                        "horizontal": self.get_stick_right_horizontal(),
+                        "vertical": self.get_stick_right_vertical(),
+                    },
+                },
+                "accel": {
+                    "x": self.get_accel_x(),
+                    "y": self.get_accel_y(),
+                    "z": self.get_accel_z(),
+                },
+                "gyro": {
+                    "x": self.get_gyro_x(),
+                    "y": self.get_gyro_y(),
+                    "z": self.get_gyro_z(),
+                },
+            }
+        return { # is both 
             "battery": {
                 "charging": self.get_battery_charging(),
                 "level": self.get_battery_level(),
@@ -414,6 +503,7 @@ class JoyCon:
             },
         }
 
+
     def set_player_lamp_on(self, on_pattern: int):
         self._write_output_report(
             b'\x01', b'\x30',
@@ -431,6 +521,8 @@ class JoyCon:
 
     def disconnect_device(self):
         self._write_output_report(b'\x01', b'\x06', b'\x00')
+        self.disconnected.set()
+        print("Disconnected from " + str(self))
 
 
 if __name__ == '__main__':

@@ -65,7 +65,7 @@ def get_R_id(**kw):
     """returns a tuple like `(vendor_id, product_id, serial_number)`"""
     ids = get_R_ids(**kw)
     if not ids:
-        return (None, None, None)
+        raise ConnectionError("Failed to connect to joycon. Ensure it is powered on and paired and try again.")
     return ids[0]
 
 
@@ -73,5 +73,5 @@ def get_L_id(**kw):
     """returns a tuple like `(vendor_id, product_id, serial_number)`"""
     ids = get_L_ids(**kw)
     if not ids:
-        return (None, None, None)
+        raise ConnectionError("Failed to connect to joycon. Ensure it is powered on and paired and try again.")
     return ids[0]

@@ -50,6 +50,15 @@ class PythonicJoyCon(JoyCon):
     set_led_flashing = JoyCon.set_player_lamp_flashing
     set_led          = JoyCon.set_player_lamp
     disconnect       = JoyCon.disconnect_device
+    
+    status           = property(JoyCon.get_status)
+    # info = {
+    #     "vendor_id" : JoyCon.vendor_id, 
+    #     "product_id" : JoyCon.product_id,
+    #     "serial" : JoyCon.serial,
+    #     "color_body" : JoyCon.color_body,
+    #     "color_btn" : JoyCon.color_btn
+    # };
 
     @property
     def stick_l(self):
