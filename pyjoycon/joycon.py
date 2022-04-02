@@ -1,5 +1,5 @@
 from .constants import JOYCON_VENDOR_ID, JOYCON_PRODUCT_IDS
-from .constants import JOYCON_L_PRODUCT_ID, JOYCON_R_PRODUCT_ID
+from .constants import JOYCON_L_PRODUCT_ID, JOYCON_R_PRODUCT_ID, JOYCON_PRO_PRODUCT_ID
 import hid
 import time
 import threading
@@ -53,11 +53,12 @@ class JoyCon:
         print("Connected to " + str(self))
 
     def __str__(self):
-        left_right = "left" if self.is_left() else "right"
         body = "\033[38;2;{};{};{}mbody\033[0m".format(self.color_body[0], self.color_body[1], self.color_body[2])
         buttons = "\033[38;2;{};{};{}mbuttons\033[0m".format(self.color_btn[0], self.color_btn[1], self.color_btn[2])
-        return f"{left_right} joycon ({self.serial} : {body}/{buttons})"
-            
+        if self.is_pro():
+            return f"pro controller ({self.serial}/{body}/{buttons})"
+        left_right = "left" if self.is_left() else "right"
+        return f"{left_right} joycon ({self.serial}/{body}/{buttons})"
 
     def _open(self, vendor_id, product_id, serial):
         try:
@@ -223,6 +224,9 @@ class JoyCon:
 
     def is_right(self):
         return self.product_id == JOYCON_R_PRODUCT_ID
+    
+    def is_pro(self):
+        return self.product_id == JOYCON_PRO_PRODUCT_ID
 
     def get_battery_charging(self):
         return self._get_nbit_from_input_report(2, 4, 1)
@@ -364,7 +368,7 @@ class JoyCon:
         return (data - self._GYRO_OFFSET_Z) * self._GYRO_COEFF_Z
 
     def get_status(self) -> dict:
-        if self.is_left:
+        if self.is_left():
             return {
                 "battery": {
                     "charging": self.get_battery_charging(),
@@ -445,7 +449,61 @@ class JoyCon:
                     "z": self.get_gyro_z(),
                 },
             }
-        return { # is both 
+        elif self.is_pro():
+            return { # is both joycon in one grip
+                "battery": {
+                    "charging": self.get_battery_charging(),
+                    "level": self.get_battery_level(),
+                },
+                "buttons": {
+                    "right": {
+                        "y": self.get_button_y(),
+                        "x": self.get_button_x(),
+                        "b": self.get_button_b(),
+                        "a": self.get_button_a(),
+                        "r": self.get_button_r(),
+                        "zr": self.get_button_zr(),
+                    },
+                    "shared": {
+                        "minus": self.get_button_minus(),
+                        "plus": self.get_button_plus(),
+                        "r-stick": self.get_button_r_stick(),
+                        "l-stick": self.get_button_l_stick(),
+                        "home": self.get_button_home(),
+                        "capture": self.get_button_capture(),
+                        "charging-grip": self.get_button_charging_grip(),
+                    },
+                    "left": {
+                        "down": self.get_button_down(),
+                        "up": self.get_button_up(),
+                        "right": self.get_button_right(),
+                        "left": self.get_button_left(),
+                        "l": self.get_button_l(),
+                        "zl": self.get_button_zl(),
+                    }
+                },
+                "analog-sticks": {
+                    "left": {
+                        "horizontal": self.get_stick_left_horizontal(),
+                        "vertical": self.get_stick_left_vertical(),
+                    },
+                    "right": {
+                        "horizontal": self.get_stick_right_horizontal(),
+                        "vertical": self.get_stick_right_vertical(),
+                    },
+                },
+                "accel": {
+                    "x": self.get_accel_x(),
+                    "y": self.get_accel_y(),
+                    "z": self.get_accel_z(),
+                },
+                "gyro": {
+                    "x": self.get_gyro_x(),
+                    "y": self.get_gyro_y(),
+                    "z": self.get_gyro_z(),
+                },
+            }
+        return { # is both joycon in one grip
             "battery": {
                 "charging": self.get_battery_charging(),
                 "level": self.get_battery_level(),
