@@ -46,10 +46,13 @@ class PythonicJoyCon(JoyCon):
     left_sr       = property(JoyCon.get_button_left_sr)
     left_sl       = property(JoyCon.get_button_left_sl)
 
-    set_led_on       = JoyCon.set_player_lamp_on
-    set_led_flashing = JoyCon.set_player_lamp_flashing
-    set_led          = JoyCon.set_player_lamp
-    disconnect       = JoyCon.disconnect_device
+    set_led_on         = JoyCon.set_player_led_on
+    set_led_flashing   = JoyCon.set_player_led_flashing
+    set_led            = JoyCon.set_player_led
+    home_led_breathing = JoyCon.set_home_led_breathing
+    home_led_blinking  = JoyCon.set_home_led_blinking
+    home_led_off       = JoyCon.set_home_led_off
+    disconnect         = JoyCon.disconnect_device
     
     status           = property(JoyCon.get_status)
     # info = {

@@ -1,3 +1,4 @@
+from syslog import LOG_WARNING
 from .constants import JOYCON_VENDOR_ID, JOYCON_PRODUCT_IDS
 from .constants import JOYCON_L_PRODUCT_ID, JOYCON_R_PRODUCT_ID, JOYCON_PRO_PRODUCT_ID
 import hid
@@ -561,18 +562,41 @@ class JoyCon:
             },
         }
 
+    def set_home_led_blinking(self):
+        if self.is_left():
+            print("Left joycon does not have home LED")
+            return
+        self._write_output_report(
+            b'\x01', b'\x38',
+            b'\xf1\x00\xf0\xf0\xf0\xf0\xf0\xf0\x00\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+    
+    def set_home_led_breathing(self):
+        if self.is_left():
+            print("Left joycon does not have home LED")
+            return
+        self._write_output_report(
+            b'\x01', b'\x38',
+            b'\x28\x20\xF2\xF0\xF0')
+    
+    def set_home_led_off(self):
+        if self.is_left():
+            print("Left joycon does not have home LED")
+            return
+        self._write_output_report(
+            b'\x01', b'\x38',
+            b'\x00\x00')
 
-    def set_player_lamp_on(self, on_pattern: int):
+    def set_player_led_on(self, on_pattern: int):
         self._write_output_report(
             b'\x01', b'\x30',
             (on_pattern & 0xF).to_bytes(1, byteorder='little'))
 
-    def set_player_lamp_flashing(self, flashing_pattern: int):
+    def set_player_led_flashing(self, flashing_pattern: int):
         self._write_output_report(
             b'\x01', b'\x30',
             ((flashing_pattern & 0xF) << 4).to_bytes(1, byteorder='little'))
 
-    def set_player_lamp(self, pattern: int):
+    def set_player_led(self, pattern: int):
         self._write_output_report(
             b'\x01', b'\x30',
             pattern.to_bytes(1, byteorder='little'))
@@ -589,9 +613,9 @@ if __name__ == '__main__':
 
     if None not in ids:
         joycon = JoyCon(*ids)
-        lamp_pattern = 0
+        led_pattern = 0
         while True:
             print(joycon.get_status())
-            joycon.set_player_lamp_on(lamp_pattern)
-            lamp_pattern = (lamp_pattern + 1) & 0xf
+            joycon.set_player_led_on(led_pattern)
+            led_pattern = (led_pattern + 1) & 0xf
             time.sleep(0.2)
